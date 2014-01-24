@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="text/javascript" src="http://mbostock.github.com/d3/d3.js"></script>
+    <script type="text/javascript" src="Complex.js"></script>
+    <script type="text/javascript" src="Canvas.js"></script>
+    <script type="text/javascript" src="Polygon.js"></script>
+</head>
+<body>
+<div id="viz"></div>
+<style>
+    svg {
+      border: 1px solid black;
+    }
+
+</style>
+<script type="text/javascript">
+
+
+
+    var canvas = new Canvas(d3.select("body").append("svg").attr("width", 1000).attr("height", 500));
+
+    new Polygon(canvas,[ { "x": 100,   "y": 100},  { "x": 200,  "y": 200},  { "x": 100,  "y": 300},  { "x": 100,  "y": 100} ],"#FFCCCC");
+
+    new Polygon(canvas,[ { "x": 100,   "y": 300},  { "x": 200,  "y": 300},  { "x": 200,  "y": 500},  { "x": 100,  "y": 500}, { "x": 100,  "y": 300} ],"green");
+
+//    new Polygon(canvas,[ { "x": 400,   "y": 400},  { "x": 500,  "y": 300},  { "x": 300,  "y": 800},  { "x": 400,  "y": 400} ],"blue");
+
+    </script>
+</body>
+</html>
