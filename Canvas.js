@@ -22,7 +22,7 @@ var Canvas = (function() {
 
               if (self.coord && self.draggingPolygon) {
                   var pos = d3.mouse(this);
-                  var translate = { x: pos[0] - self.coord[0],y:pos[1] - self.coord[1]};
+                  var translate = { x: pos[0] - self.coord.x,y:pos[1] - self.coord.y};
                   self.draggingPolygon.pull({x: pos[0], y: pos[1]});
                   //self.draggingPolygon.translate(translate);
 

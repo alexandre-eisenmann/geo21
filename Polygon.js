@@ -38,13 +38,14 @@
 
 
         this.polygonGroup.on("mousedown",function() {
-             self.refPoint = d3.mouse(this);
+             var mouseClick = d3.mouse(this);
+             self.refPoint = {x: mouseClick[0], y: mouseClick[1]};
              d3.select(this).append("circle")
                .attr("stroke", "#C0C0C0")
                .attr("stroke-width", 2)
                .attr("fill", "none")
-               .attr("cx",self.refPoint[0])
-               .attr("cy",self.refPoint[1])
+               .attr("cx",self.refPoint.x)
+               .attr("cy",self.refPoint.y)
                .attr("r",2);
              canvas.draggingStart(self,self.refPoint);
           })
@@ -70,7 +71,7 @@
 
       Polygon.prototype.pull = function(to) {
          var com = {x: this.centerOfMass.x + this.offset.x, y: this.centerOfMass.y + this.offset.y};
-         var sourcePosition = new Complex(this.refPoint[0] - com.x,this.refPoint[1] - com.y);
+         var sourcePosition = new Complex(this.refPoint.x - com.x,this.refPoint.y - com.y);
          var newCenterOfMass = com;
          var targetPosition = new Complex(to.x - newCenterOfMass.x,to.y - newCenterOfMass.y);
          var sourceAngle = ((sourcePosition.argument() * 180 / Math.PI) + 360) % 360;
