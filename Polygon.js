@@ -10,6 +10,8 @@
         this.angle = 0;
         this.offset = {x:0, y:0};
         this.refPoint;
+        
+        this.line =  null;
 
         var lineFunction = d3.svg.line()
             .x(function(d) { return d.x; })
@@ -69,17 +71,46 @@
           });
       };
 
+
+     
+
       Polygon.prototype.pull = function(to) {
          var com = {x: this.centerOfMass.x + this.offset.x, y: this.centerOfMass.y + this.offset.y};
          var sourcePosition = new Complex(this.refPoint.x - com.x,this.refPoint.y - com.y);
-         var newCenterOfMass = com;
+         
+         var r1 = sourcePosition.magnitude();
+         var r2 = new Complex(to.x - com.x,to.y - com.y).magnitude();
+         var c1 = new Complex(to.x + (to.x - com.x)*r1/r2, to.y + (to.y - com.y)*r1/r2);
+         var c2 = new Complex(to.x - (to.x - com.x)*r1/r2, to.y - (to.y - com.y)*r1/r2);
+         var C = new Complex(com.x, com.y);
+         var d1 = c1.add(C.multiply(new Complex(-1,0))).magnitude();
+         var d2 = c2.add(C.multiply(new Complex(-1,0))).magnitude();
+         var com2 = {x: c1.re(), y: c1.im()};
+         if (d2 < d1) com2 = {x: c2.re(), y: c2.im()};
+         newCenterOfMass = 
+           {x: com2.x, 
+            y: com2.y};
+         
+         if (!self.line) {
+           self.line = this.canvas.context().append("svg:line");
+         } else {
+           self.line
+          .attr("x1",newCenterOfMass.x)
+          .attr("y1", newCenterOfMass.y)
+          .attr("x2", to.x)
+          .attr("y2", to.y)
+          .style("stroke", "rgb(6,120,155)");
+          
+    	}
+         
+           
          var targetPosition = new Complex(to.x - newCenterOfMass.x,to.y - newCenterOfMass.y);
          var sourceAngle = ((sourcePosition.argument() * 180 / Math.PI) + 360) % 360;
          var targetAngle = ((targetPosition.argument() * 180 / Math.PI) + 360) % 360;
          var dAngle = (targetAngle - sourceAngle + 360) % 360;
-         var dOffset = {x: newCenterOfMass.x - this.centerOfMass.x, y:newCenterOfMass.y - this.centerOfMass.y};
+         var dOffset = {x: newCenterOfMass.x - this.centerOfMass.x , y:this.centerOfMass.y - com.y};
          this.rotate(dAngle);
-         this.translate(dOffset);
+//          this.translate(dOffset);
          this.updateTransform();
       };
 

@@ -51,6 +51,10 @@ var Canvas = (function() {
     };
 
 
+    Canvas.prototype.context = function() {
+       return this.svg
+    };
+
 
     return Canvas;
 
