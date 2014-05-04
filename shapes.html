@@ -5,6 +5,9 @@
     <script type="text/javascript" src="Complex.js"></script>
     <script type="text/javascript" src="Canvas.js"></script>
     <script type="text/javascript" src="Polygon.js"></script>
+    <script type="text/javascript" src="Point.js"></script>
+    <script type="text/javascript" src="Segment.js"></script>
+
 </head>
 <body>
 <div id="viz"></div>
@@ -19,7 +22,7 @@
 //          var com = {x: 0, y: 0};
 //          var to = {x: 2, y: 2};
 //          var sourcePosition = new Complex(0,2);
-//          
+//
 //          var r1 = sourcePosition.magnitude();
 //          var r2 = new Complex(to.x - com.x,to.y - com.y).magnitude();
 //          var c1 = new Complex(to.x + (to.x - com.x)*r1/r2, to.y + (to.y - com.y)*r1/r2);
@@ -29,18 +32,23 @@
 //          var d2 = c2.add(C.multiply(new Complex(-1,0))).magnitude();
 //          var newCenterOfMass = {x: c1.re(), y: c1.im()};
 //          if (d2 < d1) newCenterOfMass = {x: c2.re(), y: c2.im()};
-//          
+//
 //          console.log(com,newCenterOfMass);
 
+  var canvas = new Canvas(d3.select("body").append("svg").attr("width", 1000).attr("height", 500));
 
 
-   var canvas = new Canvas(d3.select("body").append("svg").attr("width", 1000).attr("height", 500));
+   var s1 = new Segment(canvas, new Point(300,50), new Point(50,300));
 
-   new Polygon(canvas,[ { "x": 100,   "y": 100},  { "x": 200,  "y": 200},  { "x": 100,  "y": 300},  { "x": 100,  "y": 100} ],"#FFCCCC");
+//   var p1 = new Polygon(canvas,[ { "x": 100,   "y": 100},  { "x": 200,  "y": 200},  { "x": 100,  "y": 300},  { "x": 100,  "y": 100} ],"#FFCCCC");
 
-   new Polygon(canvas,[ { "x": 100,   "y": 300},  { "x": 200,  "y": 300},  { "x": 200,  "y": 500},  { "x": 100,  "y": 500}, { "x": 100,  "y": 300} ],"green");
+//   var p2 = new Polygon(canvas,[ { "x": 100,   "y": 300},  { "x": 200,  "y": 300},  { "x": 200,  "y": 500},  { "x": 100,  "y": 500}, { "x": 100,  "y": 300} ],"green");
+var p3 = new Polygon(canvas,[ { "x": 100,   "y": 100},  { "x": 300,  "y": 100},  { "x": 300,  "y": 300},  { "x": 100,  "y": 300}, { "x": 100,  "y": 100} ],"green");
 
-   new Polygon(canvas,[ { "x": 400,   "y": 400},  { "x": 500,  "y": 300},  { "x": 300,  "y": 800},  { "x": 400,  "y": 400} ],"blue");
+   var result = p3.split(s1);
+
+
+  //  new Polygon(canvas,[ { "x": 400,   "y": 400},  { "x": 500,  "y": 300},  { "x": 300,  "y": 800},  { "x": 400,  "y": 400} ],"blue");
 
     </script>
 </body>

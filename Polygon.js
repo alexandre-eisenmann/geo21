@@ -10,8 +10,8 @@
         this.angle = 0;
         this.offset = {x:0, y:0};
         this.refPoint;
-        
-        
+
+
         this.line =  null;
 
         var lineFunction = d3.svg.line()
@@ -55,19 +55,19 @@
              var p = canvas.polygonBeingDragged();
              if (!p || p != self) {
                lineGraph.attr("opacity", 0.5);
-               centroidUI.attr("opacity", 0.0);      
+               centroidUI.attr("opacity", 0.0);
              }
           });
-          
+
         centroidUI.on("mouseover", function() {
            d3.select(this).attr("stroke", "black")
                           .attr("stroke-width",2);
-           
+
         }).on("mouseout", function() {
              d3.select(this).attr("stroke", "none");
-        });    
-          
-          
+        });
+
+
       }
 
 
@@ -80,16 +80,16 @@
       };
 
 
-     
+
 
       Polygon.prototype.pull = function(to) {
          var com = {x: this.centerOfMass.x + this.offset.x, y: this.centerOfMass.y + this.offset.y};
          var sourcePosition = new Complex(this.refPoint.x - this.centerOfMass.x,this.refPoint.y - this.centerOfMass.y);
-         
+
          var dist = new Complex(this.refPoint.x - this.centerOfMass.x, this.refPoint.y - this.centerOfMass.y).magnitude();
-         var newCenterOfMass = {x: this.centerOfMass.x + to.x - this.refPoint.x, 
+         var newCenterOfMass = {x: this.centerOfMass.x + to.x - this.refPoint.x,
                                 y: this.centerOfMass.y + to.y - this.refPoint.y};
-         
+
          if (dist > 10) {
            var r1 = sourcePosition.magnitude();
            var r2 = new Complex(to.x - com.x,to.y - com.y).magnitude();
@@ -100,15 +100,15 @@
            var d2 = c2.add(C.multiply(new Complex(-1,0))).magnitude();
            newCenterOfMass = {x: c1.re(), y: c1.im()};
            if (d2 < d1) newCenterOfMass = {x: c2.re(), y: c2.im()};
-  
+
            var targetPosition = new Complex(to.x - newCenterOfMass.x,to.y - newCenterOfMass.y);
            var sourceAngle = ((sourcePosition.argument() * 180 / Math.PI) + 360) % 360;
            var targetAngle = ((targetPosition.argument() * 180 / Math.PI) + 360) % 360;
            var dAngle = (targetAngle - sourceAngle + 360) % 360;
            this.rotate(dAngle);
          }
-         
-           
+
+
          var dOffset = {x: newCenterOfMass.x - this.centerOfMass.x , y:newCenterOfMass.y - this.centerOfMass.y };
          this.translate(dOffset);
          this.updateTransform();
@@ -124,6 +124,48 @@
          this.angle = angle;
          this.updateTransform();
       };
+
+
+      Polygon.prototype.split = function(segment) {
+        var n = this.data.length;
+        var polygonos = [[],[]];
+        var pi = null;
+        var index = 0;
+
+        var addPointToArray = function(array, point) {
+            var lastIndex = array.length - 1;
+            if (lastIndex < 0 || !point.equal(array[lastIndex])) {
+              array.push(point);
+            }
+        }
+
+        for(var i=0 ; i < n ; i++) {
+           var pf = new Point(this.data[i].x,this.data[i].y);
+           if (pi) {
+              var edge = new Segment(this.canvas,pi,pf);
+              var intersection = edge.intersection(segment);
+              if (intersection && pi.equal(intersection)) {
+                intersection = null;
+              }
+              addPointToArray(polygonos[index],pi);
+              if (intersection) {
+                  addPointToArray(polygonos[index], intersection);
+                  index = (index + 1) % 2;
+                  addPointToArray(polygonos[index], intersection);
+              }
+           }
+           pi = pf;
+        }
+        var result = [];
+        for (var i=0 ; i < 2 ; i++) {
+          if (polygonos[i] && polygonos[i].length >= 3) {
+            addPointToArray(polygonos[i], polygonos[i][0]);
+            result.push(new Polygon(this.canvas, polygonos[i], this.color));
+          }
+        }
+        return result;
+      };
+
 
 
       Polygon.prototype.centroid = function(z) {

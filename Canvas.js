@@ -50,6 +50,10 @@ var Canvas = (function() {
        return this.svg.append("g");
     };
 
+    Canvas.prototype.createEmptyLine = function() {
+       return this.svg.append("svg:line");
+    };
+
 
     Canvas.prototype.context = function() {
        return this.svg

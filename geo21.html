@@ -8,7 +8,7 @@
    <script type="text/javascript" src="Circle.js"></script>
    <script type="text/javascript" src="Complex.js"></script>
    <script type="text/javascript" src="Bezier.js"></script>
-   
+
    <script type="text/javascript">
 
     var canvas;
@@ -23,7 +23,7 @@
     var editorContext;
     var lastCurve;
     var timerId = 0;
-    
+
     curves['B'] = new Bezier(new Complex(-24,-60),new Complex(124,0),new Complex(0,80));
 	curves['B'].moveTo(188,130);
     colors['B'] = "red";
@@ -39,7 +39,7 @@
     curves['S'] = new Bezier(new Complex(0,12),new Complex(20,6),new Complex(20,30));
     curves['S'].moveTo(188,130);
     colors['S'] = "#e09728";
-    
+
     function findPos(obj) {
         var curleft = 0, curtop = 0;
         if (obj.offsetParent) {
@@ -51,7 +51,7 @@
         }
         return undefined;
     }
-    
+
     function rgbToHex(r, g, b) {
         if (r > 255 || g > 255 || b > 255)
             throw "Invalid color component";
@@ -65,15 +65,15 @@
         var y = e.pageY - pos.y;
         var coord = "x=" + x + ", y=" + y;
         //var c = this.getContext('2d');
-        var p = editorContext.getImageData(x, y, 1, 1).data; 
+        var p = editorContext.getImageData(x, y, 1, 1).data;
         var hex = "#" + ("000000" + rgbToHex(p[0], p[1], p[2])).slice(-6);
-        
+
         var c = new Circle(new Point(x, y), 4);
         circles.push(c);
         console.log(coord + "<br>" + hex);
-        
+
     }
-    
+
     function drag(e) {
         var pos = findPos(this);
         var x = e.pageX - pos.x;
@@ -87,28 +87,28 @@
         }
         if (highlightedCircle != undefined && highlightedCircle != circle) {
            highlightedCircle.unHighlight();
-        } 
-    
+        }
+
         if (circle != null) {
                circle.highlight();
                highlightedCircle = circle;
-        } 
-        
+        }
+
     }
-    
+
     function stopDragging(e) {
     }
-    
-    
+
+
     function clearCanvas() {
         canvas.width = canvas.width;
-        context.globalAlpha = 0.4; 
+        context.globalAlpha = 0.4;
         context.lineWidth = 6;
     }
-    
+
     function redraw() {
         clearCanvas();
-        
+
         for (var i in codes) {
            codes[i].draw(context);
         }
@@ -117,7 +117,7 @@
            circles[i].draw(editorContext);
         }
     }
-    
+
 
     function rebuild(letters) {
         codes = [];
@@ -135,13 +135,13 @@
             }
         }
     }
-    
+
 
     $(document).ready(function(){
 
         editor = document.getElementById("editor");
         editorContext = editor.getContext("2d");
-        editorContext.globalAlpha = 0.4; 
+        editorContext.globalAlpha = 0.4;
         editorContext.strokeStyle = "black";
         editorContext.lineWidth = 4;
 
@@ -151,7 +151,7 @@
         //editor.addEventListener('mouseout', stopDragging, false);
         canvas = document.getElementById("myCanvas")
         context = canvas.getContext("2d");
-        context.globalAlpha = 0.4; 
+        context.globalAlpha = 0.4;
         context.strokeStyle = "black";
         context.lineWidth = 6;
 
@@ -160,8 +160,8 @@
 
         $('#target').change(function(event) {
            rebuild($('#target').val());
-        });     
-        
+        });
+
         $('#target').keypress(function(event) {
             code = String.fromCharCode(event.which);
             rebuild($('#target').val() + code);
@@ -171,22 +171,22 @@
                 rebuild($('#target').val());
             }
         });
-        
-    
+
+
           $('#target').focus(function () {
             timerId = setInterval(redraw, 1000 / fps);
           });
-        
+
           $('#target').blur(function () {
             clearInterval(timerId);
           });
-    
+
      });
-     
-     
-     
+
+
+
    </script>
-   
+
 
    </head>
  <body>
