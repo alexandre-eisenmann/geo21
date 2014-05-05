@@ -67,9 +67,14 @@
              d3.select(this).attr("stroke", "none");
         });
 
+        canvas.addPolygon(this);
+
 
       }
 
+      Polygon.prototype.remove = function() {
+         this.polygonGroup.remove();
+      };
 
 
       Polygon.prototype.updateTransform = function() {

@@ -6,13 +6,71 @@ Segment = (function () {
   function Segment(canvas,p1, p2) {
     this.p1 = p1;
     this.p2 = p2;
+    var self = this;
 
-    var myLine = canvas.createEmptyLine()
+    this.line = canvas.createEmptyLine()
     .attr("x1", this.p1.x)
     .attr("y1", this.p1.y)
     .attr("x2", this.p2.x)
     .attr("y2", this.p2.y)
     .style("stroke", "rgb(6,120,155)");
+
+    this.p1Handle = canvas.context().append("circle")
+        .attr("id","p1")
+        .attr("stroke-width", 2)
+        .attr("stroke", "red")
+        .attr("fill","transparent")
+        .attr("cx",self.p1.x)
+        .attr("cy",self.p1.y)
+        .attr("opacity", 1.0)
+        .attr("r",4);
+
+    var context = canvas.context();
+
+    this.p2Handle = context.append("circle")
+        .attr("id","p2")
+        .attr("stroke-width", 2)
+        .attr("stroke", "red")
+        .attr("fill","transparent")
+        .attr("cx",self.p2.x)
+        .attr("cy",self.p2.y)
+        .attr("opacity", 1.0)
+        .attr("r",4);
+
+
+      this.p1Handle.on("mousedown",function() {
+        context.draggingPoint = "p1";
+        context.draggingSegment = self;
+      });
+
+      this.p2Handle.on("mousedown",function() {
+        context.draggingPoint = "p2";
+        context.draggingSegment = self;
+      });
+
+
+
+      context.on("mousemove.segment", function() {
+        var pos = d3.mouse(this);
+        if (context.draggingSegment) {
+            if (context.draggingPoint == "p1") {
+                context.draggingSegment.setP1(pos[0],pos[1]);
+            } else if (context.draggingPoint == "p2") {
+                context.draggingSegment.setP2(pos[0],pos[1]);
+            }
+        }
+      }).on("mouseup.segment", function() {
+
+        if (context.draggingSegment) {
+            canvas.split(context.draggingSegment);                  
+        }
+
+        context.draggingPoint = null;
+        context.draggingSegment = null;
+      });
+
+
+
   }
 
   //http://stackoverflow.com/questions/563198/how-do-you-detect-where-two-line-segments-intersect
@@ -32,6 +90,29 @@ Segment = (function () {
     return null;
   };
 
+
+  Segment.prototype.setP1 = function(x,y) {
+    this.p1 = new Point(x,y);
+    this.line
+    .attr("x1", x)
+    .attr("y1", y);
+
+    this.p1Handle
+        .attr("cx",x)
+        .attr("cy",y);
+  }
+
+  Segment.prototype.setP2 = function(x,y) {
+    this.p2 = new Point(x,y);
+    this.line
+    .attr("x2", x)
+    .attr("y2", y)
+
+    this.p2Handle
+    .attr("cx",x)
+    .attr("cy",y);
+
+  };
 
 
 
