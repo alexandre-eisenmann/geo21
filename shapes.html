@@ -12,38 +12,61 @@
 <body>
 <div id="viz"></div>
 <style>
+    body {
+      background-color: white;
+      margin:0px
+    }
     svg {
-      border: 1px solid black;
+      border-top: 1px dashed #CCCCCC;
+      border-bottom: 1px dashed #CCCCCC;
+      margin-top : 20px;
+      background-color: #FFFFCC;
     }
 
 </style>
 <script type="text/javascript">
 
-//          var com = {x: 0, y: 0};
-//          var to = {x: 2, y: 2};
-//          var sourcePosition = new Complex(0,2);
-//
-//          var r1 = sourcePosition.magnitude();
-//          var r2 = new Complex(to.x - com.x,to.y - com.y).magnitude();
-//          var c1 = new Complex(to.x + (to.x - com.x)*r1/r2, to.y + (to.y - com.y)*r1/r2);
-//          var c2 = new Complex(to.x - (to.x - com.x)*r1/r2, to.y - (to.y - com.y)*r1/r2);
-//          var C = new Complex(com.x, com.y);
-//          var d1 = c1.add(C.multiply(new Complex(-1,0))).magnitude();
-//          var d2 = c2.add(C.multiply(new Complex(-1,0))).magnitude();
-//          var newCenterOfMass = {x: c1.re(), y: c1.im()};
-//          if (d2 < d1) newCenterOfMass = {x: c2.re(), y: c2.im()};
-//
-//          console.log(com,newCenterOfMass);
+    var canvas = new Canvas(d3.select("body").append("svg").attr("width", "100%").attr("height", 600));
+    var context = canvas.context();
+    var svg = d3.select("svg");
 
-  var canvas = new Canvas(d3.select("body").append("svg").attr("width", 1000).attr("height", 500));
+    var cutButton = svg.append("g")
+      .attr("id", "cutButton")
+      .attr("transform","translate(10,10)")
+
+    cutButton.append("rect")
+      .attr("width", 50)
+      .attr("height", 30).on('click', function() {
+        if (context.cutLine) {
+            canvas.split(context.cutLine);
+            context.cutLine = null;
+        }
+    });
+
+    cutButton.append("text")
+        .attr("x", 8)
+        .attr("y", 15)
+        .attr("dy", ".35em")
+        .attr("fill","white")
+        .text("CUT").on('click', function() {
+          if (context.cutLine) {
+              canvas.split(context.cutLine);
+              context.cutLine = null;
+          }
+      });
 
 
-   var s1 = new Segment(canvas, new Point(300,50), new Point(50,300));
+
+
+
+
+
+   var s1 = new Segment(canvas, new Point(100,15), new Point(150,15), true);
 
 //   var p1 = new Polygon(canvas,[ { "x": 100,   "y": 100},  { "x": 200,  "y": 200},  { "x": 100,  "y": 300},  { "x": 100,  "y": 100} ],"#FFCCCC");
 
 //   var p2 = new Polygon(canvas,[ { "x": 100,   "y": 300},  { "x": 200,  "y": 300},  { "x": 200,  "y": 500},  { "x": 100,  "y": 500}, { "x": 100,  "y": 300} ],"green");
-   var p3 = new Polygon(canvas,[ { "x": 100,   "y": 100},  { "x": 300,  "y": 100},  { "x": 300,  "y": 300},  { "x": 100,  "y": 300}, { "x": 100,  "y": 100} ],"green");
+   var p3 = new Polygon(canvas,[ { "x": 100,   "y": 100},  { "x": 500,  "y": 100},  { "x": 500,  "y": 500},  { "x": 100,  "y": 500}, { "x": 100,  "y": 100} ],"green");
 
 
   //  new Polygon(canvas,[ { "x": 400,   "y": 400},  { "x": 500,  "y": 300},  { "x": 300,  "y": 800},  { "x": 400,  "y": 400} ],"blue");

@@ -3,71 +3,77 @@ Segment = (function () {
 
   Segment.name = 'Segment';
 
-  function Segment(canvas,p1, p2) {
+  function Segment(canvas,p1, p2, visible) {
     this.p1 = p1;
     this.p2 = p2;
     var self = this;
 
-    this.line = canvas.createEmptyLine()
-    .attr("x1", this.p1.x)
-    .attr("y1", this.p1.y)
-    .attr("x2", this.p2.x)
-    .attr("y2", this.p2.y)
-    .style("stroke", "rgb(6,120,155)");
+    if (visible) {
+      this.line = canvas.createEmptyLine()
+      .attr("x1", this.p1.x)
+      .attr("y1", this.p1.y)
+      .attr("x2", this.p2.x)
+      .attr("y2", this.p2.y)
+      .attr("stroke-width", 1)
+      .attr("opacity", 0.5)
+      .style("stroke", "black");
 
-    this.p1Handle = canvas.context().append("circle")
-        .attr("id","p1")
-        .attr("stroke-width", 2)
-        .attr("stroke", "red")
-        .attr("fill","transparent")
-        .attr("cx",self.p1.x)
-        .attr("cy",self.p1.y)
-        .attr("opacity", 1.0)
-        .attr("r",4);
+      this.p1Handle = canvas.context().append("circle")
+          .attr("id","p1")
+          .attr("stroke-width", 2)
+          .attr("stroke", "red")
+          .attr("fill","transparent")
+          .attr("cx",self.p1.x)
+          .attr("cy",self.p1.y)
+          .attr("opacity", 0.5)
+          .attr("r",6);
 
-    var context = canvas.context();
+      var context = canvas.context();
 
-    this.p2Handle = context.append("circle")
-        .attr("id","p2")
-        .attr("stroke-width", 2)
-        .attr("stroke", "red")
-        .attr("fill","transparent")
-        .attr("cx",self.p2.x)
-        .attr("cy",self.p2.y)
-        .attr("opacity", 1.0)
-        .attr("r",4);
-
-
-      this.p1Handle.on("mousedown",function() {
-        context.draggingPoint = "p1";
-        context.draggingSegment = self;
-      });
-
-      this.p2Handle.on("mousedown",function() {
-        context.draggingPoint = "p2";
-        context.draggingSegment = self;
-      });
+      this.p2Handle = context.append("circle")
+          .attr("id","p2")
+          .attr("stroke-width", 2)
+          .attr("stroke", "red")
+          .attr("fill","transparent")
+          .attr("cx",self.p2.x)
+          .attr("cy",self.p2.y)
+          .attr("opacity", 0.5)
+          .attr("r",6);
 
 
-
-      context.on("mousemove.segment", function() {
-        var pos = d3.mouse(this);
-        if (context.draggingSegment) {
-            if (context.draggingPoint == "p1") {
-                context.draggingSegment.setP1(pos[0],pos[1]);
-            } else if (context.draggingPoint == "p2") {
-                context.draggingSegment.setP2(pos[0],pos[1]);
-            }
-        }
-      }).on("mouseup.segment", function() {
-
-        if (context.draggingSegment) {
-            canvas.split(context.draggingSegment);                  
+        var afterDragging = function() {
+          context.cutLine = context.draggingSegment;
+          context.draggingPoint = null;
+          context.draggingSegment = null;
         }
 
-        context.draggingPoint = null;
-        context.draggingSegment = null;
-      });
+        this.p1Handle.on("mousedown",function() {
+          context.draggingPoint = "p1";
+          context.draggingSegment = self;
+        }).on("mouseup",function() {
+          afterDragging();
+        });
+
+        this.p2Handle.on("mousedown",function() {
+          context.draggingPoint = "p2";
+          context.draggingSegment = self;
+        }).on("mouseup",function() {
+          afterDragging();
+        });
+
+
+
+        context.on("mousemove.segment", function() {
+          var pos = d3.mouse(this);
+          if (context.draggingSegment) {
+              if (context.draggingPoint == "p1") {
+                  context.draggingSegment.setP1(pos[0],pos[1]);
+              } else if (context.draggingPoint == "p2") {
+                  context.draggingSegment.setP2(pos[0],pos[1]);
+              }
+          }
+        });
+      }
 
 
 
