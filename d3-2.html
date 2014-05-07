@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script type="text/javascript" src="http://mbostock.github.com/d3/d3.js"></script>
+  <style>
+    div.bar {
+      display: inline-block;
+      width: 20px;
+      height: 75px;
+      background-color: teal;
+      margin-right: 2px;
+    }
+  </style>
+
+</head>
+<body>
+<script type="text/javascript">
+
+     var dataset = [5,10,15,20,25];
+
+    //  d3.select("body").selectAll("div")
+    //    .data(dataset)
+    //    .enter()
+    //    .append("div")
+    //    .attr("class","bar");
+
+    // d3.select("body").selectAll("div")
+    //   .data(dataset)
+    //   .enter()
+    //   .append("div")
+    //   .attr("class","bar")
+    //   .style("height",function(d) {return d + 'px'})
+
+    dataset = [];
+    for(var i=0; i<25 ; i++) {
+      var n = Math.random() * 30;
+      dataset.push(n);
+    }
+
+
+    d3.select("body").selectAll("div")
+      .data(dataset)
+      .enter()
+      .append("div")
+      .attr("class","bar")
+      .style("height",function(d) {
+        return (d * 5) + 'px'
+      })
+
+
+
+
+</script>
+</body>
+</html>
