@@ -28,12 +28,12 @@
     {
      :elements
      {
-      :100 {:type :point :x 100 :y 100 :translate-x 0 :translate-y 0}
-      :200 {:type :point :x 15 :y 28 :translate-x 0 :translate-y 0}
-      :300 {:type :point :x 35 :y 18 :translate-x 0 :translate-y 0}
-      :400 {:type :point :x 55 :y 8 :translate-x 0 :translate-y 0}
-      :500 {:type :polygon :data [{:x 110 :y 20} {:x 115 :y 50} {:x 150 :y 7}] :translate-x 0 :translate-y 0}
-      :600 {:type :polygon :data [{:x 119 :y 84} {:x 170 :y 102} {:x 120 :y 170} {:x 18 :y 118}] :translate-x 0 :translate-y 0}
+      :100 {:type :point :x 100 :y 100 :translate-x 0 :translate-y 0 :rotate 0}
+      :200 {:type :point :x 15 :y 28 :translate-x 0 :translate-y 0 :rotate 0}
+      :300 {:type :point :x 35 :y 18 :translate-x 0 :translate-y 0 :rotate 0}
+      :400 {:type :point :x 55 :y 8 :translate-x 0 :translate-y 0 :rotate 0}
+      :500 {:type :polygon :data [{:x 110 :y 20} {:x 115 :y 50} {:x 150 :y 7}] :translate-x 0 :translate-y 0 :rotate 0}
+      :600 {:type :polygon :data [{:x 119 :y 84} {:x 170 :y 102} {:x 120 :y 170} {:x 18 :y 118}] :translate-x 0 :translate-y 0 :rotate 45}
      }
      }))
 
@@ -94,7 +94,7 @@
     om/IRender
     (render [_]
       (dom/polygon #js {:points (clojure.string/join " " (map #(str (:x %) "," (:y %)) (:data polygon)))
-                         :transform (str "translate(" (:translate-x polygon) "," (:translate-y polygon) ")")
+                         :transform (str "translate(" (:translate-x polygon) "," (:translate-y polygon) ")rotate(" (:rotate polygon) " " (:x (ref-point polygon)) " " (:y (ref-point polygon)) ")")
                          :onMouseDown
                            #(do
                               (swap! shared-state assoc :dragging {:id (:id polygon)
