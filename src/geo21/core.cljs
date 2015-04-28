@@ -28,12 +28,13 @@
     {
      :elements
      {
-      :100 {:type :point :x 100 :y 100 :translate-x 0 :translate-y 0 :rotate 0}
-      :200 {:type :point :x 15 :y 28 :translate-x 0 :translate-y 0 :rotate 0}
-      :300 {:type :point :x 35 :y 18 :translate-x 0 :translate-y 0 :rotate 0}
-      :400 {:type :point :x 55 :y 8 :translate-x 0 :translate-y 0 :rotate 0}
+      :100 {:type :point :x 100 :y 100}
+      :200 {:type :point :x 15 :y 28}
+      :300 {:type :point :x 35 :y 18}
+      :400 {:type :point :x 55 :y 8}
       :500 {:type :polygon :data [{:x 110 :y 20} {:x 115 :y 50} {:x 150 :y 7}] :translate-x 0 :translate-y 0 :rotate 0}
       :600 {:type :polygon :data [{:x 119 :y 84} {:x 170 :y 102} {:x 120 :y 170} {:x 18 :y 118}] :translate-x 0 :translate-y 0 :rotate 45}
+      :700 {:type :segment :from :100 :to :200}
      }
      }))
 
@@ -55,6 +56,9 @@
 
 (defmulti ref-point (fn [element] (:type element)))
 
+(defmethod ref-point :segment
+  [segment] nil)
+
 (defmethod ref-point :point
   [point] (select-keys point [:x :y]))
 
@@ -65,7 +69,30 @@
        {:x (/ (reduce + (map :x m)) c)
         :y (/ (reduce + (map :y m)) c)}))
 
+(defn element [keyw]
+   (keyw (:elements (om/root-cursor app-state))))
 
+
+(defn segment-view [segment owner]
+  (let [to (element (:to segment))
+        from (element (:from segment))]
+    (reify
+      om/IDidMount
+      (did-mount [_]
+        (om/observe owner (om/ref-cursor to))
+        (om/observe owner (om/ref-cursor from)))
+      om/IRender
+      (render [_]
+        (dom/g nil
+          (dom/line #js {
+             :x1 (:x from)
+             :y1 (:y from)
+             :x2 (:x to)
+             :y2 (:y to)
+             :strokeWidth "1"
+             :opacity "0.5"
+             :stroke "black"
+            }))))))
 
 (defn point-view [point owner]
   (reify
@@ -74,7 +101,6 @@
         (dom/circle #js {:r 40
                         :stroke "black"
                         :strokeWidth 1
-                        :transform (str "translate(" (:translate-x point) "," (:translate-y point) ")")
                         :fill "red"
                         :id (name (:id point))
                         :onMouseDown
@@ -106,6 +132,9 @@
 
 
 (defmulti element-view (fn [element owner] (:type element)))
+
+(defmethod element-view :segment
+  [element owner] (segment-view element owner))
 
 (defmethod element-view :point
   [element owner] (point-view element owner))
