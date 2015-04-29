@@ -4,6 +4,8 @@
             [om.dom :as dom :include-macros true]
             [clojure.string :as string]))
 
+
+
 (enable-console-print!)
 
 (extend-type string
@@ -38,7 +40,75 @@
      }
      }))
 
+(defn cross-product
+  "Cross product between two points"
+  [p1 p2]
+  (- (* (:x p1) (:y p2)) (* (:y p1) (:x p2))))
 
+(defn add
+  "Vectorial adding between two points"
+  [p1 p2]
+  {:x (+ (:x p1) (:x p2)) :y (+ (:y p1) (:y p2))})
+
+
+(defn times
+  "Multiply a point by a scalar"
+  [p k]
+  {:x (* (:x p) k) :y (* (:y p) k)})
+
+(def s1 {:from {:x -2 :y 0} :to {:x 2 :y 0}})
+(def s2 {:from {:x 0 :y -2} :to {:x 0 :y 2}})
+(def s3 {:from {:x 5 :y -2} :to {:x 5 :y 3}})
+(def s4 {:from {:x -10 :y -10} :to {:x 12 :y 11}})
+
+(defn intersection
+  "Interesection between two segment return nil when there is no intersection"
+  [s1 s2]
+  (let [s1p1 (:from s1)
+        s1p2 (:to s1)
+        s2p1 (:from s2)
+        s2p2 (:to s2)
+        s1p1x (:x s1p1)
+        s1p1y (:y s1p1)
+        s1p2x (:x s1p2)
+        s1p2y (:y s1p2)
+        s2p1x (:x s2p1)
+        s2p1y (:y s2p1)
+        s2p2x (:x s2p2)
+        s2p2y (:y s2p2)
+        p s1p1
+        q s2p1
+        r {:x (- s1p2x s1p1x) :y (- s1p2y s1p1y)}
+        s {:x (- s2p2x s2p1x) :y (- s2p2y s2p1y)}
+        qMinusP {:x (- (:x q) (:x p)) :y (- (:y q) (:y p))}
+        rXs (cross-product r s)]
+          (if-not (zero? rXs)
+            (let [t (/ (cross-product qMinusP s) rXs)]
+              (if (and (>= t 0) (<= t 1))
+                (add p (times r t)))))))
+
+(defn polygon-segments
+  "Return segments of polygon"
+  [polygon ]
+  (let [ps (:data polygon)]
+    (map (fn [p1 p2] {:to p1 :from p2}) ps (conj (vec (rest ps)) (first ps)))))
+
+(defn split-polygon
+  "Split a polygon by a segment when appropriated"
+  [polygon segment]
+  (let [m (group-by
+           (fn [side]
+              (when-let [p (intersection side segment)]
+                [{:to (:to side) :from p} {:to p :from (:from side)}])) (polygon-segments polygon))
+        untouched (get m nil)
+        intersected (filter identity (keys m))
+        ]
+    (when (= 2 (count intersected))
+      intersected)))
+
+
+
+; (group-by (fn [segment] (nil? (intersection segment s1))) (polygon-segments (element :600)))
 
 
 (defn element-being-dragged-id []
