@@ -116,9 +116,11 @@
            side)) (polygon-segments polygon)))
         partioned (partition-by #(= % :break) marked)]
       (when (= (count partioned) 5)
-        (let [n (name (:id polygon))]
-        [(polygon-from-segments (keyword (str n "-a")) (vec (nth partioned 2)))
-         (polygon-from-segments (keyword (str n "-b")) (concat (vec (nth partioned 4)) (vec (nth partioned 0))))]))))
+        (let [n (name (:id polygon))
+              a (keyword (str n "a"))
+              b (keyword (str n "b"))]
+        [(polygon-from-segments a (vec (nth partioned 2)))
+         (polygon-from-segments b (concat (vec (nth partioned 4)) (vec (nth partioned 0))))]))))
 
 
 (defn segments-from-point
@@ -242,8 +244,6 @@
                                    what)))]
 ;                                  (.log js/console (str to-do))
                                   (perform (split-polygon-update to-do))
-
-
                                  ))
                         :onMouseDown
                          #(do
@@ -333,9 +333,7 @@
 ;                   (.log js/console (str "xxxxx"  (element-being-dragged)))
                    (update-element (element-being-dragged) (.-clientX %) (.-clientY %)))
                 }
-            (om/build-all element-view (vals (:elements data)))
-;            (om/build-all element-view (map #(assoc (% m) :id %) (keys m))))
-               )))))
+            (om/build-all element-view (vals (:elements data))))))))
 
 
 (om/root elements-view app-state
