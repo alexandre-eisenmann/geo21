@@ -11,6 +11,11 @@ svg {
   width: 600px;
 }
 
+polygon {
+  fill: green;
+  stroke: black;
+}
+
 circle {
   cursor: default;
 

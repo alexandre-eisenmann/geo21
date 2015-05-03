@@ -30,13 +30,15 @@
     {
      :elements
      {
-      :100 {:type :point :x 100 :y 100}
-      :200 {:type :point :x 15 :y 28}
-      :300 {:type :point :x 35 :y 18}
-      :400 {:type :point :x 55 :y 8}
-      :500 {:type :polygon :data [{:x 110 :y 20} {:x 115 :y 50} {:x 150 :y 7}] :translate-x 0 :translate-y 0 :rotate 0}
-      :600 {:type :polygon :data [{:x 119 :y 84} {:x 170 :y 102} {:x 120 :y 170} {:x 18 :y 118}] :translate-x 0 :translate-y 0 :rotate 45}
-      :700 {:type :segment :from :100 :to :200}
+      :100 {:id :100 :type :point :x 100 :y 100}
+      :200 {:id :200 :type :point :x 15 :y 28}
+      :300 {:id :300 :type :point :x 35 :y 18}
+      :400 {:id :400 :type :point :x 55 :y 8}
+      :450 {:id :450 :type :point :x 10 :y 10}
+      :460 {:id :460 :type :point :x 20 :y 20}
+      :500 {:id :500 :type :polygon :data [{:x 110 :y 20} {:x 115 :y 50} {:x 150 :y 7}] :translate-x 0 :translate-y 0 :rotate 0}
+      :600 {:id :600 :type :polygon :data [{:x 119 :y 84} {:x 170 :y 102} {:x 120 :y 170} {:x 18 :y 118}] :translate-x 0 :translate-y 0 :rotate 0}
+      :700 {:id :700 :type :segment :from :450 :to :460}
      }
      }))
 
@@ -60,9 +62,15 @@
 (def s2 {:from {:x 0 :y -2} :to {:x 0 :y 2}})
 (def s3 {:from {:x 5 :y -2} :to {:x 5 :y 3}})
 (def s4 {:from {:x -10 :y -10} :to {:x 12 :y 11}})
+(def s5 {:from {:x 119 :y 84} :to {:x 170 :y 102}})
+(def s6 {:from {:x 170 :y 102} :to {:x 120 :y 170}})
+(def s7 {:from {:x 120 :y 170} :to {:x 18 :y 118}})
+(def s8 {:from {:x 18 :y 118} :to {:x 119 :y 84}})
+(def s9 {:from {:x 0 :y 0} :to {:x 500 :y 500}})
+(def s10 {:from {:x 0 :y 100} :to {:x 100 :y 100}})
 
 (defn intersection
-  "Interesection between two segment return nil when there is no intersection"
+  "Interesection between two segments. Return nil when there is no intersection"
   [s1 s2]
   (let [s1p1 (:from s1)
         s1p2 (:to s1)
@@ -77,15 +85,15 @@
         s2p2x (:x s2p2)
         s2p2y (:y s2p2)
         p s1p1
-        q s2p1
         r {:x (- s1p2x s1p1x) :y (- s1p2y s1p1y)}
+        q s2p1
         s {:x (- s2p2x s2p1x) :y (- s2p2y s2p1y)}
         qMinusP {:x (- (:x q) (:x p)) :y (- (:y q) (:y p))}
-        rXs (cross-product r s)]
-          (if-not (zero? rXs)
-            (let [t (/ (cross-product qMinusP s) rXs)]
-              (if (and (>= t 0) (<= t 1))
-                (add p (times r t)))))))
+        rXs (cross-product r s)
+        u (/ (cross-product qMinusP r) rXs)
+        t (/ (cross-product qMinusP s) rXs)]
+          (if (and (not (zero? rXs)) (>= t 0) (<= t 1) (>= u 0) (<= u 1))
+            (add p (times r t)))))
 
 (defn polygon-segments
   "Return segments of polygon"
@@ -93,22 +101,38 @@
   (let [ps (:data polygon)]
     (map (fn [p1 p2] {:to p1 :from p2}) ps (conj (vec (rest ps)) (first ps)))))
 
+(defn polygon-from-segments
+  "Build polygon from a vector of segments"
+  [id segments]
+  (let [f (first segments)]
+    {:id id :type :polygon :data (vec (concat  [(:to f)] [(:from f)] (map :from (rest segments)))) :translate-x 0 :translate-y 0 :rotate 0}))
+
 (defn split-polygon
   "Split a polygon by a segment when appropriated"
   [polygon segment]
-  (let [m (group-by
-           (fn [side]
-              (when-let [p (intersection side segment)]
-                [{:to (:to side) :from p} {:to p :from (:from side)}])) (polygon-segments polygon))
-        untouched (get m nil)
-        intersected (filter identity (keys m))
-        ]
-    (when (= 2 (count intersected))
-      intersected)))
+  (let [marked (flatten (map (fn [side]
+         (if-let [p (intersection side segment)]
+           [{:to (:to side) :from p} :break {:to p :from (:from side)}]
+           side)) (polygon-segments polygon)))
+        partioned (partition-by #(= % :break) marked)]
+      (when (= (count partioned) 5)
+        (let [n (name (:id polygon))]
+        [(polygon-from-segments (keyword (str n "-a")) (vec (nth partioned 2)))
+         (polygon-from-segments (keyword (str n "-b")) (concat (vec (nth partioned 4)) (vec (nth partioned 0))))]))))
+
+
+(defn segments-from-point
+  [point]
+    (filter
+      #(and (= :segment (:type %)) (or (= (:id point) (:to %)) (= (:id point) (:from %))))
+        (vals (:elements (om/root-cursor app-state)))))
 
 
 
-; (group-by (fn [segment] (nil? (intersection segment s1))) (polygon-segments (element :600)))
+(defn polygons
+  []
+  (filter
+   #(= :polygon (:type %)) (vals (:elements (om/root-cursor app-state)))))
 
 
 (defn element-being-dragged-id []
@@ -164,15 +188,63 @@
              :stroke "black"
             }))))))
 
+(defn build-segment [segment]
+  {:from {:x (:x (element (:from segment)))
+          :y (:y (element (:from segment)))}
+   :to   {:x (:x (element (:to segment)))
+          :y (:y (element (:to segment)))}})
+
+(defn build-point [point]
+  {:x (:x point) :y (:y point)})
+
+
+(defn segments-x-polygons
+  [point]
+  (for [s (segments-from-point point)
+        p (polygons)]
+        {:segment s :polygon p}))
+
+
+(defn split-polygon-update [to-do]
+  (map (fn [action]
+    (om/transact! (om/root-cursor app-state) :elements
+      (fn [elements]
+        (let [coming-0  (nth (:coming action) 0)
+              coming-1  (nth (:coming action) 1)]
+          (assoc (dissoc elements (:id (:going action)))
+            (:id coming-0) coming-0
+            (:id coming-1) coming-1
+            ))))) to-do))
+
+(defn perform [action]
+     (vec action))
+
 (defn point-view [point owner]
   (reify
     om/IRender
     (render [_]
-        (dom/circle #js {:r 40
+        (dom/circle #js {:r 5
                         :stroke "black"
                         :strokeWidth 1
                         :fill "red"
-                        :id (name (:id point))
+                        :id (:id point)
+                        :onMouseLeave
+                        #()
+                        :onMouseUp
+                        (fn [_] (let [what
+                                (for [s (segments-from-point point) p (polygons)]
+                                  {:segment s :polygon p})
+                                to-do
+                                  (vec (remove nil? (map
+                                   (fn [pair]
+                                     (when-let [p (split-polygon (:polygon pair) (build-segment (:segment pair)))]
+                                       {:going (:polygon pair) :coming p}))
+                                   what)))]
+;                                  (.log js/console (str to-do))
+                                  (perform (split-polygon-update to-do))
+
+
+                                 ))
                         :onMouseDown
                          #(do
                             (swap! shared-state assoc :dragging {:id (:id point)
@@ -191,11 +263,14 @@
     (render [_]
       (dom/polygon #js {:points (clojure.string/join " " (map #(str (:x %) "," (:y %)) (:data polygon)))
                          :transform (str "translate(" (:translate-x polygon) "," (:translate-y polygon) ")rotate(" (:rotate polygon) " " (:x (ref-point polygon)) " " (:y (ref-point polygon)) ")")
-                         :onMouseDown
+                        :id (:id polygon)
+                        :onMouseDown
                            #(do
+
                               (swap! shared-state assoc :dragging {:id (:id polygon)
                                               :dx (- (+ (:x (ref-point polygon)) (:translate-x polygon)) (- (.-clientX %) 8))
                                               :dy (- (+ (:y (ref-point polygon)) (:translate-y polygon)) (- (.-clientY %) 64))})
+;                              (.log js/console (str @shared-state))
                             )
                            }
                     ))))
@@ -250,12 +325,17 @@
                 :onMouseLeave
                 #(swap! shared-state assoc :dragging nil)
                 :onMouseUp
-                #(swap! shared-state assoc :dragging nil)
+                #(do
+                   ;(.log js/console (str " bbbbbbb" (build-point (element :460))))
+                   (swap! shared-state assoc :dragging nil))
                 :onMouseMove
-                #(update-element (element-being-dragged) (.-clientX %) (.-clientY %))
+                #(do
+;                   (.log js/console (str "xxxxx"  (element-being-dragged)))
+                   (update-element (element-being-dragged) (.-clientX %) (.-clientY %)))
                 }
-          (let [m (:elements data)]
-          (om/build-all element-view (map #(assoc (% m) :id %) (keys m)))))))))
+            (om/build-all element-view (vals (:elements data)))
+;            (om/build-all element-view (map #(assoc (% m) :id %) (keys m))))
+               )))))
 
 
 (om/root elements-view app-state
