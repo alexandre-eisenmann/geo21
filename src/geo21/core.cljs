@@ -8,22 +8,7 @@
 
 (enable-console-print!)
 
-(extend-type string
-  ICloneable
-  (-clone [s] (js/String. s)))
-
-(extend-type js/String
-  ICloneable
-  (-clone [s] (js/String. s))
-  om/IValue
-  (-value [s] (str s)))
-
-(def shared-state
-  (atom
-    {
-     :dragging nil
-    }))
-
+(def shared-state (atom { :dragging nil }))
 
 (def app-state
   (atom
@@ -37,10 +22,56 @@
       :450 {:id :450 :type :point :x 10 :y 10}
       :460 {:id :460 :type :point :x 20 :y 20}
       :500 {:id :500 :type :polygon :data [{:x 110 :y 20} {:x 115 :y 50} {:x 150 :y 7}] :translate-x 0 :translate-y 0 :rotate 0}
-      :600 {:id :600 :type :polygon :data [{:x 119 :y 84} {:x 170 :y 102} {:x 120 :y 170} {:x 18 :y 118}] :translate-x 0 :translate-y 0 :rotate 0}
+      :600 {:id :600 :type :polygon :data [{:x 119 :y 84} {:x 170 :y 102} {:x 120 :y 170} {:x 18 :y 118}] :translate-x 0 :translate-y 0 :rotate 360}
       :700 {:id :700 :type :segment :from :450 :to :460}
      }
      }))
+
+(def top 64)
+
+(def left 8)
+
+(defn matrix-multiplication
+  "Matrix multiplication A x B"
+  [A B]
+  (let [rows-number  (count B)
+        cols-number  (first (map count B))
+        rows-verif   (apply = (count B) (map count A))
+        cols-verif   (apply = (map count B))]
+    (if (and rows-verif cols-verif)
+      (let [rows (range rows-number)
+            cols (range cols-number)
+            r (map (fn [col] (map (fn [row]
+                  (reduce + (map * (nth A row)
+                      (map (fn [line] (nth line col)) B)))) rows)) cols)]
+         (vec (map (fn [row] (vec (map #(nth % row) r))) rows))))))
+
+(defn translate-matrix
+  "Return a matrix capable of translate a point"
+  [x y]
+  [ [1 0 x] [0 1 y] [0 0 1] ])
+
+(defn rotate-matrix
+  "Return a matrix capable of rotate through [0 0] or an arbitrary point"
+  ([teta]
+    (let [cosTeta  (.cos js/Math (* teta (/ (.-PI js/Math) 180)))
+          sinTeta  (.sin js/Math (* teta (/ (.-PI js/Math) 180)))]
+      [ [cosTeta (- 0 sinTeta) 0] [sinTeta cosTeta 0] [0 0 1] ]))
+  ([teta x y]
+   (matrix-multiplication (translate-matrix x y)
+     (matrix-multiplication (rotate-matrix teta) (translate-matrix (- 0 x) (- 0 y))))))
+
+ (defn polygon-screen-coordinates
+   "Screen coordinates for a polygon"
+   [polygon]
+   (let [centroid (ref-point polygon)
+        M (matrix-multiplication (translate-matrix (:translate-x polygon) (:translate-y polygon))
+                                 (rotate-matrix (:rotate polygon) (:x centroid) (:y centroid)))]
+
+     (assoc polygon :translate-x 0 :translate-y 0 :rotate 0 :data
+       (vec (map (fn [p] (let [coord (flatten (matrix-multiplication M [[(:x p)] [(:y p)] [1]]))]
+                      {:x (nth coord 0) :y (nth coord 1)})) (:data polygon))))))
+
 
 (defn cross-product
   "Cross product between two points"
@@ -110,13 +141,14 @@
 (defn split-polygon
   "Split a polygon by a segment when appropriated"
   [polygon segment]
-  (let [marked (flatten (map (fn [side]
+  (let [polygon-screen (polygon-screen-coordinates polygon)
+        marked (flatten (map (fn [side]
          (if-let [p (intersection side segment)]
            [{:to (:to side) :from p} :break {:to p :from (:from side)}]
-           side)) (polygon-segments polygon)))
+           side)) (polygon-segments polygon-screen)))
         partioned (partition-by #(= % :break) marked)]
       (when (= (count partioned) 5)
-        (let [n (name (:id polygon))
+        (let [n (name (:id polygon-screen))
               a (keyword (str n "a"))
               b (keyword (str n "b"))]
         [(polygon-from-segments a (vec (nth partioned 2)))
@@ -221,35 +253,31 @@
 (defn perform [action]
      (vec action))
 
+(defn drop-point
+  [point]
+  (let [what  (for [s (segments-from-point point) p (polygons)]{:segment s :polygon p})
+        to-do (vec (remove nil? (map
+                (fn [pair]
+                  (when-let [p (split-polygon (:polygon pair) (build-segment (:segment pair)))]
+                    {:going (:polygon pair) :coming p})) what)))]
+    (perform (split-polygon-update to-do))))
+
+
 (defn point-view [point owner]
   (reify
     om/IRender
     (render [_]
-        (dom/circle #js {:r 5
-                        :stroke "black"
-                        :strokeWidth 1
-                        :fill "red"
+        (dom/circle #js {:r 6
                         :id (:id point)
-                        :onMouseLeave
-                        #()
+                        ;:onMouseLeave
+                        ;#(drop-point point)
                         :onMouseUp
-                        (fn [_] (let [what
-                                (for [s (segments-from-point point) p (polygons)]
-                                  {:segment s :polygon p})
-                                to-do
-                                  (vec (remove nil? (map
-                                   (fn [pair]
-                                     (when-let [p (split-polygon (:polygon pair) (build-segment (:segment pair)))]
-                                       {:going (:polygon pair) :coming p}))
-                                   what)))]
-;                                  (.log js/console (str to-do))
-                                  (perform (split-polygon-update to-do))
-                                 ))
+                        #(drop-point point)
                         :onMouseDown
                          #(do
                             (swap! shared-state assoc :dragging {:id (:id point)
-                                              :dx (- (:x (ref-point point)) (- (.-clientX %) 8))
-                                              :dy (- (:y (ref-point point)) (- (.-clientY %) 64))})
+                                              :dx (- (:x (ref-point point)) (- (.-clientX %) left))
+                                              :dy (- (:y (ref-point point)) (- (.-clientY %) top))})
                             ;(.log js/console (str (:x point) " " (.-clientX %) " " (.-clientY %)))
                             )
                         :cx (:x point)
@@ -261,15 +289,16 @@
   (reify
     om/IRender
     (render [_]
-      (dom/polygon #js {:points (clojure.string/join " " (map #(str (:x %) "," (:y %)) (:data polygon)))
-                         :transform (str "translate(" (:translate-x polygon) "," (:translate-y polygon) ")rotate(" (:rotate polygon) " " (:x (ref-point polygon)) " " (:y (ref-point polygon)) ")")
+      (dom/polygon #js {:class "ants"
+                        :points (clojure.string/join " " (map #(str (:x %) "," (:y %)) (:data polygon)))
+                        :transform (str "translate(" (:translate-x polygon) "," (:translate-y polygon) ")rotate(" (:rotate polygon) " " (:x (ref-point polygon)) " " (:y (ref-point polygon)) ")")
                         :id (:id polygon)
                         :onMouseDown
                            #(do
 
                               (swap! shared-state assoc :dragging {:id (:id polygon)
-                                              :dx (- (+ (:x (ref-point polygon)) (:translate-x polygon)) (- (.-clientX %) 8))
-                                              :dy (- (+ (:y (ref-point polygon)) (:translate-y polygon)) (- (.-clientY %) 64))})
+                                              :dx (- (+ (:x (ref-point polygon)) (:translate-x polygon)) (- (.-clientX %) left))
+                                              :dy (- (+ (:y (ref-point polygon)) (:translate-y polygon)) (- (.-clientY %) top))})
 ;                              (.log js/console (str @shared-state))
                             )
                            }
@@ -295,20 +324,17 @@
     (when-not (nil? element) (:type element))))
 
 (defmethod update-element nil [_])
+
 (defmethod update-element :point
   [element x y]
-  (let [top 64 ;(.. % -target -offsetTop)
-        left 8 ;(.. % -target -offsetLeft)
-        ]
+  (do
     (om/update! element [:x] (+ (- x left) (element-being-dragged-dx)))
     (om/update! element [:y] (+ (- y top)  (element-being-dragged-dy)))))
+
 (defmethod update-element :polygon
   [element x y]
-  (let [top 64 ;(.. % -target -offsetTop)
-        left 8 ;(.. % -target -offsetLeft)
-        dx (+ (- (- x left) (:x (ref-point element))) (element-being-dragged-dx))
-        dy (+ (- (- y top) (:y (ref-point element))) (element-being-dragged-dy))
-        ]
+  (let  [dx (+ (- (- x left) (:x (ref-point element))) (element-being-dragged-dx))
+         dy (+ (- (- y top) (:y (ref-point element))) (element-being-dragged-dy))]
     (om/update! element [:translate-x] dx)
     (om/update! element [:translate-y] dy)))
 
@@ -319,7 +345,7 @@
     om/IRender
     (render [_]
       (dom/div #js {:id "Elements view"}
-        (dom/h2 nil "Elements")
+        (dom/h2 nil "")
         (apply dom/svg #js
                {
                 :onMouseLeave
