@@ -1,8 +1,9 @@
-(ns geo21.core
+  (ns geo21.core
   (:require [figwheel.client :as fw]
             [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
             [clojure.string :as string]))
+
 
 
 
@@ -15,21 +16,15 @@
     {
      :elements
      {
-      :100 {:id :100 :type :point :x 100 :y 100}
       :200 {:id :200 :type :point :x 15 :y 28}
       :300 {:id :300 :type :point :x 35 :y 18}
       :400 {:id :400 :type :point :x 55 :y 8}
       :450 {:id :450 :type :point :x 10 :y 10}
       :460 {:id :460 :type :point :x 20 :y 20}
-      :500 {:id :500 :type :polygon :data [{:x 110 :y 20} {:x 115 :y 50} {:x 150 :y 7}] :translate-x 0 :translate-y 0 :rotate 0}
-      :600 {:id :600 :type :polygon :data [{:x 119 :y 84} {:x 170 :y 102} {:x 120 :y 170} {:x 18 :y 118}] :translate-x 0 :translate-y 0 :rotate 360}
+      :600 {:id :600 :type :polygon :data [{:x 100 :y 100} {:x 500 :y 100} {:x 500 :y 500} {:x 100 :y 500}] :translate-x 0 :translate-y 0 :rotate 0}
       :700 {:id :700 :type :segment :from :450 :to :460}
      }
      }))
-
-(def top 64)
-
-(def left 8)
 
 (defn matrix-multiplication
   "Matrix multiplication A x B"
@@ -51,6 +46,12 @@
   [x y]
   [ [1 0 x] [0 1 y] [0 0 1] ])
 
+(defn translate-point
+  "Translate points to x and y"
+  [point x y]
+  (let [result (flatten (matrix-multiplication (translate-matrix x y) [[(:x point)] [(:y point)] [1]]))]
+    {:x (nth result 0) :y (nth result 1)}))
+
 (defn rotate-matrix
   "Return a matrix capable of rotate through [0 0] or an arbitrary point"
   ([teta]
@@ -61,16 +62,30 @@
    (matrix-multiplication (translate-matrix x y)
      (matrix-multiplication (rotate-matrix teta) (translate-matrix (- 0 x) (- 0 y))))))
 
- (defn polygon-screen-coordinates
-   "Screen coordinates for a polygon"
-   [polygon]
-   (let [centroid (ref-point polygon)
+(defn polygon-screen-coordinates
+  "Screen coordinates for a polygon"
+  [polygon]
+  (let [centroid (ref-point polygon)
         M (matrix-multiplication (translate-matrix (:translate-x polygon) (:translate-y polygon))
                                  (rotate-matrix (:rotate polygon) (:x centroid) (:y centroid)))]
 
-     (assoc polygon :translate-x 0 :translate-y 0 :rotate 0 :data
-       (vec (map (fn [p] (let [coord (flatten (matrix-multiplication M [[(:x p)] [(:y p)] [1]]))]
-                      {:x (nth coord 0) :y (nth coord 1)})) (:data polygon))))))
+    (assoc polygon :translate-x 0 :translate-y 0 :rotate 0 :data
+      (vec (map (fn [p] (let [coord (flatten (matrix-multiplication M [[(:x p)] [(:y p)] [1]]))]
+                          {:x (nth coord 0) :y (nth coord 1)})) (:data polygon))))))
+
+
+
+(defn distance
+  "Distance between two points"
+  [p1 p2]
+  (let [dx (- (:x p1) (:x p2))
+        dy (- (:y p1) (:y p2))]
+    (.sqrt js/Math (+ (* dx dx) (* dy dy)))))
+
+(defn magnitude
+  "Magnitude of a vector"
+  [v]
+  (distance v {:x 0 :y 0}))
 
 
 (defn cross-product
@@ -125,6 +140,38 @@
         t (/ (cross-product qMinusP s) rXs)]
           (if (and (not (zero? rXs)) (>= t 0) (<= t 1) (>= u 0) (<= u 1))
             (add p (times r t)))))
+
+
+(defn pull
+  "Pull a polygon in direction of x and y"
+  [polygon sourcePosition to]
+  (let [centroid (ref-point polygon)
+        ;com (translate-point (ref-point polygon) (:translate-x polygon) (:translate-y polygon))
+        com (ref-point (polygon-screen-coordinates polygon))
+        r1 (magnitude sourcePosition)]
+     (if (> r1 10)
+       (let [r2 (magnitude {:x (- (:x to) (:x com)) :y (- (:y to) (:y com))})
+             c1 {:x (+ (:x to) (/ (* r1 (- (:x to) (:x com))) r2)),
+                 :y (+ (:y to) (/ (* r1 (- (:y to) (:y com))) r2))}
+             c2 {:x (- (:x to) (/ (* r1 (- (:x to) (:x com))) r2)),
+                 :y (- (:y to) (/ (* r1 (- (:y to) (:y com))) r2))}
+             d1 (magnitude (add c1 {:x (- 0 (:x com)) :y (- 0 (:y com))}))
+             d2 (magnitude (add c2 {:x (- 0 (:x com)) :y (- 0 (:y com))}))
+             new-centroid (if (< d2 d1) c2 c1)
+             targetPosition {:x (- (:x to) (:x new-centroid)) :y (- (:y to) (:y new-centroid))}
+             sourceArgument (.atan2 js/Math (:y sourcePosition) (:x sourcePosition))
+             targetArgument (.atan2 js/Math (:y targetPosition) (:x targetPosition))
+             sourceAngle (rem (+ 360 (/ (* 180 sourceArgument) (.-PI js/Math))) 360)
+             targetAngle (rem (+ 360 (/ (* 180 targetArgument) (.-PI js/Math))) 360)
+             angle (rem (+ 360 (- targetAngle sourceAngle)) 360)
+             offset {:x (- (:x new-centroid) (:x centroid)) :y (- (:y new-centroid) (:y centroid))}]
+         {:offset offset :angle (rem (+ angle 0) 360) })
+         {:offset {:x (- (- (:x to) (:x sourcePosition)) (:x centroid))
+                   :y (- (- (:y to) (:y sourcePosition)) (:y centroid))}
+                   :angle (:rotate polygon)})
+
+       ))
+
 
 (defn polygon-segments
   "Return segments of polygon"
@@ -274,11 +321,15 @@
                         :onMouseUp
                         #(drop-point point)
                         :onMouseDown
-                         #(do
+                         #(let [rect (.. % -target -parentNode getBoundingClientRect)
+                                mouseY (- (.-clientY %) (.-top rect))
+                                mouseX (- (.-clientX %) (.-left rect))]
+        (.log js/console (str mouseX " " mouseY))
+
                             (swap! shared-state assoc :dragging {:id (:id point)
-                                              :dx (- (:x (ref-point point)) (- (.-clientX %) left))
-                                              :dy (- (:y (ref-point point)) (- (.-clientY %) top))})
-                            ;(.log js/console (str (:x point) " " (.-clientX %) " " (.-clientY %)))
+                                              :dx (- (:x (ref-point point)) mouseX)
+                                              :dy (- (:y (ref-point point)) mouseY)})
+
                             )
                         :cx (:x point)
                         :cy (:y point)}))))
@@ -289,17 +340,20 @@
   (reify
     om/IRender
     (render [_]
-      (dom/polygon #js {:class "ants"
+      (dom/polygon #js {:className "ants"
                         :points (clojure.string/join " " (map #(str (:x %) "," (:y %)) (:data polygon)))
                         :transform (str "translate(" (:translate-x polygon) "," (:translate-y polygon) ")rotate(" (:rotate polygon) " " (:x (ref-point polygon)) " " (:y (ref-point polygon)) ")")
                         :id (:id polygon)
                         :onMouseDown
-                           #(do
+                           #(let [pol (polygon-screen-coordinates polygon)
+                                  rect (.. % -target -parentNode getBoundingClientRect)
+                                  mouseY (- (.-clientY %) (.-top rect))
+                                  mouseX (- (.-clientX %) (.-left rect))]
 
-                              (swap! shared-state assoc :dragging {:id (:id polygon)
-                                              :dx (- (+ (:x (ref-point polygon)) (:translate-x polygon)) (- (.-clientX %) left))
-                                              :dy (- (+ (:y (ref-point polygon)) (:translate-y polygon)) (- (.-clientY %) top))})
-;                              (.log js/console (str @shared-state))
+                              (swap! shared-state assoc :dragging {:id (:id pol)
+                                              :dx (- (:x (ref-point pol)) mouseX)
+                                              :dy (- (:y (ref-point pol)) mouseY)})
+
                             )
                            }
                     ))))
@@ -328,16 +382,39 @@
 (defmethod update-element :point
   [element x y]
   (do
-    (om/update! element [:x] (+ (- x left) (element-being-dragged-dx)))
-    (om/update! element [:y] (+ (- y top)  (element-being-dragged-dy)))))
+    (om/update! element [:x] (+ x (element-being-dragged-dx)))
+    (om/update! element [:y] (+ y (element-being-dragged-dy)))))
 
 (defmethod update-element :polygon
   [element x y]
-  (let  [dx (+ (- (- x left) (:x (ref-point element))) (element-being-dragged-dx))
-         dy (+ (- (- y top) (:y (ref-point element))) (element-being-dragged-dy))]
-    (om/update! element [:translate-x] dx)
-    (om/update! element [:translate-y] dy)))
+  (let  [pol (polygon-screen-coordinates element)
+         transform (pull element {:x (- 0 (element-being-dragged-dx))
+                                  :y (- 0 (element-being-dragged-dy))}  {:x x :y y})]
 
+    (om/update! element [:translate-x] (:x (:offset transform)))
+    (om/update! element [:translate-y] (:y (:offset transform)))
+    (om/update! element [:rotate] (:angle transform))))
+
+
+
+
+(defmulti release-element (fn [element]
+    (when-not (nil? element) (:type element))))
+
+(defmethod release-element nil [_])
+
+(defmethod release-element :point
+  [element]
+  (swap! shared-state assoc :dragging nil))
+
+(defmethod release-element :polygon
+  [element]
+  (let [polygon (polygon-screen-coordinates element)]
+        (swap! shared-state assoc :dragging nil)
+        (om/update! element [:data] (:data polygon))
+        (om/update! element [:translate-x] 0)
+        (om/update! element [:translate-y] 0)
+        (om/update! element [:rotate] 0)))
 
 
 (defn elements-view [data owner]
@@ -349,15 +426,14 @@
         (apply dom/svg #js
                {
                 :onMouseLeave
-                #(swap! shared-state assoc :dragging nil)
+                #(release-element (element-being-dragged))
                 :onMouseUp
-                #(do
-                   ;(.log js/console (str " bbbbbbb" (build-point (element :460))))
-                   (swap! shared-state assoc :dragging nil))
+                #(release-element (element-being-dragged))
                 :onMouseMove
-                #(do
-;                   (.log js/console (str "xxxxx"  (element-being-dragged)))
-                   (update-element (element-being-dragged) (.-clientX %) (.-clientY %)))
+                #(let [rect (.. % -target -parentNode getBoundingClientRect)
+                       mouseY (- (.-clientY %) (.-top rect))
+                       mouseX (- (.-clientX %) (.-left rect))]
+                   (update-element (element-being-dragged) mouseX mouseY))
                 }
             (om/build-all element-view (vals (:elements data))))))))
 

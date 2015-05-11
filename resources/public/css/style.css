@@ -15,6 +15,22 @@ html {
   }
 }
 
+$ant_size: 8;
+$march_speed: 0.34s;
+$march_lunges: 12;
+
+@keyframes marching_ants {
+  0%   {stroke-dashoffset: 0;}
+  100% {stroke-dashoffset: $ant_size*2;}
+}
+.ants {
+  animation:
+    marching_ants
+    $march_speed
+    steps($march_lunges)
+    infinite;
+  stroke-dasharray: $ant_size;
+}
 
 svg {
   background: #333;
