@@ -46,11 +46,11 @@ polygon {
 }
 
 polygon:hover {
-  opacity: 1;
-  stroke-width: 1px;
-  stroke: rgb(186, 218, 85);
+  fill-opacity: 0.5;
 
 }
+
+
 
 circle {
   cursor: default;
@@ -58,7 +58,29 @@ circle {
   stroke: red;
   fill: transparent;
   opacity: 0.7;
+
 }
+
+g circle {
+  display: none;
+}
+
+g:hover circle {
+  display: block;
+  fill: #bada55;
+  stroke-width: 0;
+  opacity: 0.7
+
+}
+
+g circle:hover {
+  display: block;
+  fill: #bada55;
+  stroke-width: 0;
+  opacity: 1.0
+
+}
+
 
 circle:hover {
   opacity: 1;

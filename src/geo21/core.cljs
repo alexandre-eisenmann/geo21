@@ -9,6 +9,11 @@
 
 (enable-console-print!)
 
+(defn by-id
+  "Get element by id"
+  [id]
+  (.getElementById js/document (name id)))
+
 (def shared-state (atom { :dragging nil }))
 
 (def app-state
@@ -149,7 +154,7 @@
         ;com (translate-point (ref-point polygon) (:translate-x polygon) (:translate-y polygon))
         com (ref-point (polygon-screen-coordinates polygon))
         r1 (magnitude sourcePosition)]
-     (if (> r1 10)
+     (if (>= r1 10)
        (let [r2 (magnitude {:x (- (:x to) (:x com)) :y (- (:y to) (:y com))})
              c1 {:x (+ (:x to) (/ (* r1 (- (:x to) (:x com))) r2)),
                  :y (+ (:y to) (/ (* r1 (- (:y to) (:y com))) r2))}
@@ -321,7 +326,8 @@
                         :onMouseUp
                         #(drop-point point)
                         :onMouseDown
-                         #(let [rect (.. % -target -parentNode getBoundingClientRect)
+                         #(let [canvas (by-id "canvas")
+                                rect (.getBoundingClientRect canvas)
                                 mouseY (- (.-clientY %) (.-top rect))
                                 mouseX (- (.-clientX %) (.-left rect))]
         (.log js/console (str mouseX " " mouseY))
@@ -340,23 +346,21 @@
   (reify
     om/IRender
     (render [_]
-      (dom/polygon #js {:className "ants"
-                        :points (clojure.string/join " " (map #(str (:x %) "," (:y %)) (:data polygon)))
-                        :transform (str "translate(" (:translate-x polygon) "," (:translate-y polygon) ")rotate(" (:rotate polygon) " " (:x (ref-point polygon)) " " (:y (ref-point polygon)) ")")
-                        :id (:id polygon)
-                        :onMouseDown
-                           #(let [pol (polygon-screen-coordinates polygon)
-                                  rect (.. % -target -parentNode getBoundingClientRect)
-                                  mouseY (- (.-clientY %) (.-top rect))
-                                  mouseX (- (.-clientX %) (.-left rect))]
+        (dom/g #js {:transform (str "translate(" (:translate-x polygon) "," (:translate-y polygon) ")rotate(" (:rotate polygon) " " (:x (ref-point polygon)) " " (:y (ref-point polygon)) ")")
+                    :id (:id polygon)
+                    :onMouseDown
+                    #(let [canvas (by-id "canvas")
+                           rect (.getBoundingClientRect canvas)
+                           mouseY (- (.-clientY %) (.-top rect))
+                           mouseX (- (.-clientX %) (.-left rect))]
 
-                              (swap! shared-state assoc :dragging {:id (:id pol)
-                                              :dx (- (:x (ref-point pol)) mouseX)
-                                              :dy (- (:y (ref-point pol)) mouseY)})
-
-                            )
-                           }
-                    ))))
+                       (swap! shared-state assoc :dragging {:id (:id polygon)
+                                                            :dx (- (:x (ref-point polygon)) mouseX)
+                                                            :dy (- (:y (ref-point polygon)) mouseY)}))}
+               (dom/polygon #js {:points (clojure.string/join " " (map #(str (:x %) "," (:y %)) (:data polygon)))})
+               (dom/circle #js {:r 10
+                                :cx (:x (ref-point polygon))
+                                :cy (:y (ref-point polygon))})))))
 
 
 (defmulti element-view (fn [element owner] (:type element)))
@@ -425,12 +429,14 @@
         (dom/h2 nil "")
         (apply dom/svg #js
                {
-                :onMouseLeave
-                #(release-element (element-being-dragged))
+                :id "canvas"
+;                :onMouseLeave
+ ;               #(release-element (element-being-dragged))
                 :onMouseUp
                 #(release-element (element-being-dragged))
                 :onMouseMove
-                #(let [rect (.. % -target -parentNode getBoundingClientRect)
+                #(let [canvas (by-id "canvas")
+                       rect (.getBoundingClientRect canvas)
                        mouseY (- (.-clientY %) (.-top rect))
                        mouseX (- (.-clientX %) (.-left rect))]
                    (update-element (element-being-dragged) mouseX mouseY))
