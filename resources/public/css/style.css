@@ -39,17 +39,6 @@ svg {
   width: 100%;
 }
 
-polygon {
-  fill: #bada55;
-  fill-opacity: 0.3;
-  cursor: default;
-}
-
-polygon:hover {
-  fill-opacity: 0.5;
-
-}
-
 
 
 circle {
@@ -61,9 +50,22 @@ circle {
 
 }
 
+g {
+  fill: #bada55;
+  fill-opacity: 0.3;
+  pointer-events: all;
+}
+
+g:hover {
+  fill-opacity: 0.7;
+}
+
 g circle {
   display: none;
+  fill: #bada55;
 }
+
+
 
 g:hover circle {
   display: block;
@@ -74,12 +76,25 @@ g:hover circle {
 }
 
 g circle:hover {
-  display: block;
   fill: #bada55;
   stroke-width: 0;
   opacity: 1.0
 
 }
+
+.dragging > polygon{
+  fill: #bada55;
+  fill-opacity: 0.7;
+  cursor: default;
+}
+
+
+.dragging > circle {
+  fill: #bada55;
+  stroke-width: 0;
+  opacity: 0.7
+}
+
 
 
 circle:hover {

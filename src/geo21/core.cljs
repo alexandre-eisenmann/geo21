@@ -14,22 +14,31 @@
   [id]
   (.getElementById js/document (name id)))
 
-(def shared-state (atom { :dragging nil }))
+;(def shared-state (atom { :dragging nil :last-dragged nil}))
+(def shared-state (atom { :dragging nil}))
 
 (def app-state
   (atom
-    {
-     :elements
+    {:elements
      {
       :200 {:id :200 :type :point :x 15 :y 28}
       :300 {:id :300 :type :point :x 35 :y 18}
       :400 {:id :400 :type :point :x 55 :y 8}
       :450 {:id :450 :type :point :x 10 :y 10}
       :460 {:id :460 :type :point :x 20 :y 20}
-      :600 {:id :600 :type :polygon :data [{:x 100 :y 100} {:x 500 :y 100} {:x 500 :y 500} {:x 100 :y 500}] :translate-x 0 :translate-y 0 :rotate 0}
-      :700 {:id :700 :type :segment :from :450 :to :460}
+      :600 {:id :600 :type :polygon :data [{:x 100 :y 100} {:x 500 :y 100} {:x 500 :y 500} {:x 100 :y 500}] :translate-x 0 :translate-y 0 :rotate 0 }
+      :700 {:id :700 :type :segment :from :450 :to :460 }
      }
      }))
+
+
+(def app-history (atom [@app-state]))
+
+
+;(add-watch app-state :history
+ ; (fn [_ _ _ n]
+  ;  (when-not (= (last @app-history) n)
+   ;   (swap! app-history conj n))))
 
 (defn matrix-multiplication
   "Matrix multiplication A x B"
@@ -178,6 +187,8 @@
        ))
 
 
+
+
 (defn polygon-segments
   "Return segments of polygon"
   [polygon ]
@@ -219,6 +230,11 @@
   []
   (filter
    #(= :polygon (:type %)) (vals (:elements (om/root-cursor app-state)))))
+
+
+;(defn last-dragged
+; []
+; (:last-dragged @shared-state))
 
 
 (defn element-being-dragged-id []
@@ -312,7 +328,8 @@
                 (fn [pair]
                   (when-let [p (split-polygon (:polygon pair) (build-segment (:segment pair)))]
                     {:going (:polygon pair) :coming p})) what)))]
-    (perform (split-polygon-update to-do))))
+    (perform (split-polygon-update to-do))
+    (swap! app-history conj @app-state)))
 
 
 (defn point-view [point owner]
@@ -330,7 +347,6 @@
                                 rect (.getBoundingClientRect canvas)
                                 mouseY (- (.-clientY %) (.-top rect))
                                 mouseX (- (.-clientX %) (.-left rect))]
-        (.log js/console (str mouseX " " mouseY))
 
                             (swap! shared-state assoc :dragging {:id (:id point)
                                               :dx (- (:x (ref-point point)) mouseX)
@@ -348,6 +364,7 @@
     (render [_]
         (dom/g #js {:transform (str "translate(" (:translate-x polygon) "," (:translate-y polygon) ")rotate(" (:rotate polygon) " " (:x (ref-point polygon)) " " (:y (ref-point polygon)) ")")
                     :id (:id polygon)
+                    :className (:className polygon "")
                     :onMouseDown
                     #(let [canvas (by-id "canvas")
                            rect (.getBoundingClientRect canvas)
@@ -356,7 +373,10 @@
 
                        (swap! shared-state assoc :dragging {:id (:id polygon)
                                                             :dx (- (:x (ref-point polygon)) mouseX)
-                                                            :dy (- (:y (ref-point polygon)) mouseY)}))}
+                                                            :dy (- (:y (ref-point polygon)) mouseY)})
+;                       (swap! shared-state assoc :last-dragged (:id polygon))
+
+                       )}
                (dom/polygon #js {:points (clojure.string/join " " (map #(str (:x %) "," (:y %)) (:data polygon)))})
                (dom/circle #js {:r 10
                                 :cx (:x (ref-point polygon))
@@ -395,6 +415,7 @@
          transform (pull element {:x (- 0 (element-being-dragged-dx))
                                   :y (- 0 (element-being-dragged-dy))}  {:x x :y y})]
 
+    (om/update! element [:className] "dragging")
     (om/update! element [:translate-x] (:x (:offset transform)))
     (om/update! element [:translate-y] (:y (:offset transform)))
     (om/update! element [:rotate] (:angle transform))))
@@ -415,10 +436,12 @@
   [element]
   (let [polygon (polygon-screen-coordinates element)]
         (swap! shared-state assoc :dragging nil)
+        (om/update! element [:className] nil)
         (om/update! element [:data] (:data polygon))
         (om/update! element [:translate-x] 0)
         (om/update! element [:translate-y] 0)
-        (om/update! element [:rotate] 0)))
+        (om/update! element [:rotate] 0))
+        (swap! app-history conj @app-state))
 
 
 (defn elements-view [data owner]
@@ -426,7 +449,11 @@
     om/IRender
     (render [_]
       (dom/div #js {:id "Elements view"}
-        (dom/h2 nil "")
+        (dom/button #js {:onClick
+            #(let []
+              (when (> (count @app-history) 1)
+                    (swap! app-history pop)
+                    (reset! app-state (last @app-history))))} "Undo")
         (apply dom/svg #js
                {
                 :id "canvas"
@@ -441,7 +468,13 @@
                        mouseX (- (.-clientX %) (.-left rect))]
                    (update-element (element-being-dragged) mouseX mouseY))
                 }
-            (om/build-all element-view (vals (:elements data))))))))
+                (om/build-all element-view
+;                   (if (or (nil? (last-dragged)) (nil? ((last-dragged) (:elements data))))
+                      (vals (:elements data))
+ ;                     (conj (vec (remove #(= (:id %) (last-dragged))
+  ;                              (vals (:elements data)))) ((last-dragged) (:elements data)))))
+               ))
+               ))))
 
 
 (om/root elements-view app-state
