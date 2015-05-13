@@ -34,19 +34,19 @@ $march_lunges: 12;
 
 svg {
   background: #333;
-  border: 1px solid black;
   height: 600px;
   width: 100%;
+  margin-top: 8px;
 }
 
 
 
 circle {
   cursor: default;
-  stroke-width: 2;
-  stroke: red;
+  stroke-width: 4;
+  stroke: #bada55;
   fill: transparent;
-  opacity: 0.7;
+  opacity: 0.5;
 
 }
 
@@ -105,5 +105,4 @@ line {
   stroke-width: 1;
   stroke: #aaa;
 }
-
 

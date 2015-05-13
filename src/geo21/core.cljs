@@ -21,11 +21,8 @@
   (atom
     {:elements
      {
-      :200 {:id :200 :type :point :x 15 :y 28}
-      :300 {:id :300 :type :point :x 35 :y 18}
-      :400 {:id :400 :type :point :x 55 :y 8}
-      :450 {:id :450 :type :point :x 10 :y 10}
-      :460 {:id :460 :type :point :x 20 :y 20}
+      :450 {:id :450 :type :point :x 20 :y 20}
+      :460 {:id :460 :type :point :x 60 :y 20}
       :600 {:id :600 :type :polygon :data [{:x 100 :y 100} {:x 500 :y 100} {:x 500 :y 500} {:x 100 :y 500}] :translate-x 0 :translate-y 0 :rotate 0 }
       :700 {:id :700 :type :segment :from :450 :to :460 }
      }
