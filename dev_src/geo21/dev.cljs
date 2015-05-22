@@ -1,6 +1,7 @@
 (ns geo21.dev
     (:require
      [geo21.core]
+     [geo21.core-test]
      [figwheel.client :as fw]))
 
 (fw/start {

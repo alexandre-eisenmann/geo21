@@ -9,16 +9,21 @@
                  [figwheel "0.2.5-SNAPSHOT"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [sablono "0.3.4"]
-                 [org.omcljs/om "0.8.8"]]
+                 [org.omcljs/om "0.8.8"]
+                 [com.cemerick/clojurescript.test "0.3.3"]]
 
   :plugins [[lein-cljsbuild "1.0.4"]
-            [lein-figwheel "0.2.5-SNAPSHOT"]]
+            [lein-figwheel "0.2.5-SNAPSHOT"]
+            [com.cemerick/clojurescript.test "0.3.3"]]
 
   :source-paths ["src"]
 
   :clean-targets ^{:protect false} ["resources/public/js/compiled"]
 
+  :hooks [leiningen.cljsbuild]
+
   :cljsbuild {
+
     :builds [{:id "dev"
               :source-paths ["src" "dev_src"]
               :compiler {:output-to "resources/public/js/compiled/geo21.js"
@@ -31,10 +36,14 @@
                          :cache-analysis true }}
              {:id "min"
               :source-paths ["src"]
-              :compiler {:output-to "resources/public/js/compiled/om_tut.js"
+              :compiler {:output-to "resources/public/js/compiled/geo21_min.js"
                          :main geo21.core
                          :optimizations :advanced
-                         :pretty-print false}}]}
+                         :pretty-print false}}
+
+             ]
+
+              }
 
   :figwheel {
              :http-server-root "public" ;; default and assumes "resources"
