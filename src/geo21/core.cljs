@@ -20,27 +20,16 @@
   (atom
     {:elements
      {
-      :450 {:id :450 :type :point :x 20 :y 20}
-      :460 {:id :460 :type :point :x 60 :y 20}
       :600 {:id :600 :type :polygon :data [{:x 100 :y 100} {:x 500 :y 100} {:x 500 :y 500} {:x 100 :y 500}] :translate-x 0 :translate-y 0 :rotate 0 }
-      :700 {:id :700 :type :segment :from :450 :to :460 }
      }
      }))
 
-
 (def app-history (atom [@app-state]))
-
-
-
-
-
 
 (defn polygons
   []
   (filter
    #(= :polygon (:type %)) (vals (:elements (om/root-cursor app-state)))))
-
-
 
 (defn element-being-dragged-id []
  (:id (:dragging @shared-state)))
@@ -125,6 +114,10 @@
                   (when-let [p (split-polygon (:polygon pair) (build-segment (:segment pair)))]
                     {:going (:polygon pair) :coming p})) what)))]
     (perform (split-polygon-update to-do))
+    (om/transact! (om/root-cursor app-state) :elements
+      (fn [elements]
+        (apply dissoc elements
+          (map :id (filter #(or (= :point (:type %)) (= :segment (:type %))) (vals elements))))))
     (swap! app-history conj @app-state)))
 
 
@@ -134,24 +127,8 @@
     (render [_]
         (dom/circle #js {:r 6
                         :id (:id point)
-                        ;:onMouseLeave
-                        ;#(drop-point point)
-                        :onMouseUp
-                        #(drop-point point)
-                        :onMouseDown
-                         #(let [canvas (by-id "canvas")
-                                rect (.getBoundingClientRect canvas)
-                                mouseY (- (.-clientY %) (.-top rect))
-                                mouseX (- (.-clientX %) (.-left rect))]
-
-                            (swap! shared-state assoc :dragging {:id (:id point)
-                                              :dx (- (:x (ref-point point)) mouseX)
-                                              :dy (- (:y (ref-point point)) mouseY)})
-
-                            )
                         :cx (:x point)
                         :cy (:y point)}))))
-
 
 
 (defn polygon-view [polygon owner]
@@ -162,15 +139,18 @@
                     :id (:id polygon)
                     :className (:className polygon "")
                     :onMouseDown
-                    #(let [canvas (by-id "canvas")
+                    #(do
+                       (.stopPropagation %)
+                       (let [canvas (by-id "canvas")
                            rect (.getBoundingClientRect canvas)
                            mouseY (- (.-clientY %) (.-top rect))
                            mouseX (- (.-clientX %) (.-left rect))]
 
+
                        (swap! shared-state assoc :dragging {:id (:id polygon)
                                                             :dx (- (:x (ref-point polygon)) mouseX)
                                                             :dy (- (:y (ref-point polygon)) mouseY)})
-                       )}
+                       ))}
                (dom/polygon #js {:points (clojure.string/join " " (map #(str (:x %) "," (:y %)) (:data polygon)))})
                (dom/circle #js {:r 10
                                 :cx (:x (ref-point polygon))
@@ -218,8 +198,6 @@
     (om/update! element [:rotate] (:angle transform))))
 
 
-
-
 (defmulti release-element (fn [element]
     (when-not (nil? element) (:type element))))
 
@@ -227,6 +205,7 @@
 
 (defmethod release-element :point
   [element]
+  (drop-point element)
   (swap! shared-state assoc :dragging nil))
 
 (defmethod release-element :polygon
@@ -254,8 +233,30 @@
         (apply dom/svg #js
                {
                 :id "canvas"
-;                :onMouseLeave
- ;               #(release-element (element-being-dragged))
+                  :onMouseDown
+                #(let [canvas (by-id "canvas")
+                       rect (.getBoundingClientRect canvas)
+                       mouseY (- (.-clientY %) (.-top rect))
+                       mouseX (- (.-clientX %) (.-left rect))
+                       timestamp  (.getTime (js/Date.))
+                       from {:id (keyword (str "f-" timestamp)) :type :point :x mouseX :y mouseY}
+                       to {:id (keyword (str "t-" timestamp)) :type :point :x mouseX :y mouseY}
+                       segment {:id (keyword (str "s-" timestamp)) :type :segment :from (:id from) :to (:id to)}]
+
+                       (om/transact! (om/root-cursor app-state) :elements
+                          (fn [elements]
+                            (assoc elements
+                              (:id from) from
+                              (:id to) to
+                              (:id segment) segment
+                              )))
+
+                       (swap! shared-state assoc :dragging {:id (:id to)
+                             :dx (- (:x (ref-point to)) mouseX)
+                             :dy (- (:y (ref-point to)) mouseY)})
+
+                   )
+
                 :onMouseUp
                 #(release-element (element-being-dragged))
                 :onMouseMove
