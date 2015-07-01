@@ -1,36 +1,9 @@
-
-
 html {
   background: #555;
   margin: 0px;
   padding: 0px;
 }
 
-@keyframes marching_ants {
-  0% {
-    stroke-dashoffset: 0;
-  }
-  100% {
-    stroke-dashoffset: 16;
-  }
-}
-
-$ant_size: 8;
-$march_speed: 0.34s;
-$march_lunges: 12;
-
-@keyframes marching_ants {
-  0%   {stroke-dashoffset: 0;}
-  100% {stroke-dashoffset: $ant_size*2;}
-}
-.ants {
-  animation:
-    marching_ants
-    $march_speed
-    steps($march_lunges)
-    infinite;
-  stroke-dasharray: $ant_size;
-}
 
 svg {
   background: #333;
@@ -56,9 +29,6 @@ g {
   pointer-events: all;
 }
 
-g:hover {
-  fill-opacity: 0.7;
-}
 
 g circle {
   display: none;
@@ -66,6 +36,9 @@ g circle {
 }
 
 
+polygon {
+ filter: url(#innershadow);
+}
 
 g:hover circle {
   display: block;
@@ -76,7 +49,6 @@ g:hover circle {
 }
 
 g circle:hover {
-  fill: #bada55;
   stroke-width: 0;
   opacity: 1.0
 
@@ -84,7 +56,6 @@ g circle:hover {
 
 .dragging > polygon{
   fill: #bada55;
-  fill-opacity: 0.7;
   cursor: default;
 }
 

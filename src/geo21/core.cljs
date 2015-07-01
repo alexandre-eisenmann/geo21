@@ -1,7 +1,7 @@
 (ns geo21.core
     (:require [figwheel.client :as fw]
               [om.core :as om :include-macros true]
-              [om.dom :as dom :include-macros true]
+              [om-tools.dom :as dom :include-macros true]
               [geo21.math :refer [ref-point polygon-screen-coordinates pull split-polygon]]
               [clojure.string :as string]))
 
@@ -60,7 +60,7 @@
       om/IRender
       (render [_]
         (dom/g nil
-          (dom/line #js {
+          (dom/line {
              :x1 (:x from)
              :y1 (:y from)
              :x2 (:x to)
@@ -121,11 +121,12 @@
     (swap! app-history conj @app-state)))
 
 
+
 (defn point-view [point owner]
   (reify
     om/IRender
     (render [_]
-        (dom/circle #js {:r 6
+        (dom/circle  {:r 6
                         :id (:id point)
                         :cx (:x point)
                         :cy (:y point)}))))
@@ -135,7 +136,7 @@
   (reify
     om/IRender
     (render [_]
-        (dom/g #js {:transform (str "translate(" (:translate-x polygon) "," (:translate-y polygon) ")rotate(" (:rotate polygon) " " (:x (ref-point polygon)) " " (:y (ref-point polygon)) ")")
+        (dom/g  {:transform (str "translate(" (:translate-x polygon) "," (:translate-y polygon) ")rotate(" (:rotate polygon) " " (:x (ref-point polygon)) " " (:y (ref-point polygon)) ")")
                     :id (:id polygon)
                     :className (:className polygon "")
                     :onMouseDown
@@ -151,16 +152,17 @@
                                                             :dx (- (:x (ref-point polygon)) mouseX)
                                                             :dy (- (:y (ref-point polygon)) mouseY)})
                        ))}
-               (dom/polygon #js {:points (clojure.string/join " " (map #(str (:x %) "," (:y %)) (:data polygon)))})
-               (dom/circle #js {:r 10
-                                :cx (:x (ref-point polygon))
-                                :cy (:y (ref-point polygon))})))))
+               (dom/polygon {:points (clojure.string/join " " (map #(str (:x %) "," (:y %)) (:data polygon)))})
+               (dom/circle  {:r 10
+                            :cx (:x (ref-point polygon))
+                            :cy (:y (ref-point polygon))})))))
 
 
 
 
 
 (defmulti element-view (fn [element owner] (:type element)))
+
 
 (defmethod element-view :segment
   [element owner] (segment-view element owner))
@@ -224,13 +226,13 @@
   (reify
     om/IRender
     (render [_]
-      (dom/div #js {:id "Elements view"}
-        (dom/button #js {:onClick
+      (dom/div {:id "Elements view"}
+        (dom/button {:onClick
             #(let []
               (when (> (count @app-history) 1)
                     (swap! app-history pop)
                     (reset! app-state (last @app-history))))} "Undo")
-        (apply dom/svg #js
+        (dom/svg
                {
                 :id "canvas"
                   :onMouseDown
@@ -266,7 +268,23 @@
                        mouseX (- (.-clientX %) (.-left rect))]
                    (update-element (element-being-dragged) mouseX mouseY))
                 }
-                (om/build-all element-view
+                  (dom/defs  {:dangerouslySetInnerHTML  {:__html
+                    "<filter id=\"innershadow\" x0=\"-50%\" y0=\"-50%\" width=\"200%\" height=\"200%\">
+                      <feGaussianBlur in=\"SourceAlpha\" stdDeviation=\"5\" result=\"blur\"></feGaussianBlur>
+                      <feOffset dy=\"2\" dx=\"3\"></feOffset>
+                      <feComposite in2=\"SourceAlpha\" operator=\"arithmetic\" k2=\"-1\" k3=\"1\" result=\"shadowDiff\"></feComposite>
+                      <feFlood flood-color=\"#666\" flood-opacity=\"0.75\"></feFlood>
+                      <feComposite in2=\"shadowDiff\" operator=\"in\"></feComposite>
+                      <feComposite in2=\"SourceGraphic\" operator=\"over\" result=\"firstfilter\"></feComposite>
+                      <feGaussianBlur in=\"firstfilter\" stdDeviation=\"5\" result=\"blur2\"></feGaussianBlur>
+                      <feOffset dy=\"-2\" dx=\"-3\"></feOffset>
+                      <feComposite in2=\"firstfilter\" operator=\"arithmetic\" k2=\"-1\" k3=\"1\" result=\"shadowDiff\"></feComposite>
+                      <feFlood flood-color=\"#666\" flood-opacity=\"0.75\"></feFlood>
+                      <feComposite in2=\"shadowDiff\" operator=\"in\"></feComposite>
+                      <feComposite in2=\"firstfilter\" operator=\"over\"></feComposite>
+                    </filter>"
+                  }} nil)
+                  (om/build-all element-view
                       (vals (:elements data))))))))
 
 
