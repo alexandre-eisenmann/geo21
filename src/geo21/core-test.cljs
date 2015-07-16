@@ -1,5 +1,5 @@
 (ns geo21.core-test
-    (:require [geo21.math :refer [matrix-multiplication split-polygon intersection]]))
+    (:require [geo21.math :refer [matrix-multiplication split-polygon intersection area centroid]]))
 
 
 (def p1 {:id :333 :type :point :x 300 :y 10})
@@ -61,7 +61,13 @@
     (.log js/console (str pol-a " " pol-b))
         (assert-equality pol-a pol-b expected-1 expected-2)))
 
+(defn area-test []
+  (do
+    (assert (= (area polygon) 160000))
+    (assert (= (area {:data [{:x 100 :y 100} {:x 500 :y 100} {:x 500 :y 500}]}) 80000))))
 
+(defn centroid-test []
+    (assert (= (centroid polygon) {:x 300 :y 300})))
 
 
 

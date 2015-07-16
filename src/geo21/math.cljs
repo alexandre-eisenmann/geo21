@@ -21,6 +21,7 @@
   [x y]
   [ [1 0 x] [0 1 y] [0 0 1] ])
 
+
 (defn translate-point
   "Translate points to x and y"
   [point x y]
@@ -37,6 +38,35 @@
    (matrix-multiplication (translate-matrix x y)
      (matrix-multiplication (rotate-matrix teta) (translate-matrix (- 0 x) (- 0 y))))))
 
+(defn abs
+  "Return absolute value of a number"
+  [n] (max n (- n)))
+
+
+(defn area
+  "Return the area of the polygon"
+  [polygon]
+  (let [data (:data polygon)
+        v (take (inc (count data)) (cycle data))
+        vi (drop-last v)
+        vf (drop 1 v)]
+     (/ (abs (reduce + (map (fn [i f] (- (* (:x i) (:y f)) (* (:x f) (:y i)))) vi vf))) 2)))
+
+(def m-area (memoize area))
+
+(defn centroid
+  "Return the centroid of the polygon"
+  [polygon]
+  (let [area (m-area polygon)
+        data (:data polygon)
+        v (take (inc (count data)) (cycle data))
+        vi (drop-last v)
+        vf (drop 1 v)]
+     {:x (/ (reduce + (map (fn [i f] (* (+ (:x i) (:x f)) (- (* (:x i) (:y f)) (* (:x f) (:y i))))) vi vf)) (* 6 area))
+      :y (/ (reduce + (map (fn [i f] (* (+ (:y i) (:y f)) (- (* (:x i) (:y f)) (* (:x f) (:y i))))) vi vf)) (* 6 area))}))
+
+(def m-centroid (memoize centroid))
+
 
 (defmulti ref-point (fn [element] (:type element)))
 
@@ -48,12 +78,7 @@
 
 (defmethod ref-point :polygon
   [polygon]
-  (let [m (:data polygon)
-        c (count m)]
-       {:x (/ (reduce + (map :x m)) c)
-        :y (/ (reduce + (map :y m)) c)}))
-
-
+  (m-centroid polygon))
 
 (defn polygon-screen-coordinates
   "Screen coordinates for a polygon"
@@ -94,10 +119,6 @@
   "Multiply a point by a scalar"
   [p k]
   {:x (* (:x p) k) :y (* (:y p) k)})
-
-
-
-
 
 (defn intersection
   "Interesection between two segments. Return nil when there is no intersection"
